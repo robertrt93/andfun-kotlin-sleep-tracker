@@ -16,16 +16,51 @@
 
 package com.example.android.trackmysleepquality.database
 
+import android.content.Context
+import androidx.room.*
+import androidx.sqlite.db.SupportSQLiteOpenHelper
+import java.security.AccessControlContext
+
 // TODO (01) Create an abstract class that extends RoomDatabase.
+@Database(entities = [SleepNight::class], version = 1, exportSchema = false)
+abstract class SleepDatabase : RoomDatabase() {
 
-// TODO (02) Declare an abstract value of type SleepDatabaseDao.
+    abstract val sleepDatabaseDao: SleepDatabaseDao
 
-// TODO (03) Declare a companion object.
+    companion object {
 
-// TODO (04) Declare a @Volatile INSTANCE variable.
+        /**
+         * Esta variable nos asegura que el valor de INSTANCE siempre a al altura de fecha
+         * y para el resto de ejecuciones.
+         * EL valor de una variable volatile nunca se almacena en cache, leer y escribir
+         * se realizan desde y hacia la memoria principal.
+         * Lo que significa que los cambios son visibles para los demas subprocesos
+         */
+        @Volatile
+        private var INSTANCE: SleepDatabase? = null
 
-// TODO (05) Define a getInstance() method with a synchronized block.
+        fun getInstance(context: Context): SleepDatabase {
+            /**
+             * envolviendo nuestro codigo en medios sincronizados
+             * solo un hilo de ejecucion puede ingresar a la vez a este bloque de codigo
+             * Lo   uw asegura que la bbdd solo se inicie una vez
+             */
+            synchronized(this) {
 
-// TODO (06) Inside the synchronized block:
-// Check whether the database already exists,
-// and if it does not, use Room.databaseBuilder to create it.
+                var instance = INSTANCE
+                if (null == instance) {
+
+                    instance = Room.databaseBuilder(
+                        context.applicationContext,
+                        SleepDatabase::class.java,
+                        "sleep_history_database")
+                        .fallbackToDestructiveMigration()
+                        .build()
+                    INSTANCE = instance
+                }
+                return instance
+            }
+        }
+    }
+}
+
